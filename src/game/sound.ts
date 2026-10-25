@@ -6,6 +6,7 @@ const MUTE_KEY = 'tetris.muted'
 export class Sound {
   muted: boolean
   private ctx: AudioContext | null = null
+  private out: AudioNode | null = null
 
   constructor() {
     this.muted = readMuted()
@@ -22,22 +23,30 @@ export class Sound {
 
   /** Must be called from a user gesture so browsers allow audio. */
   unlock() {
-    if (!this.ctx) this.ctx = new AudioContext()
+    if (!this.ctx) {
+      this.ctx = new AudioContext()
+      // Master volume into a compressor so stacked sounds don't clip.
+      const master = this.ctx.createGain()
+      master.gain.value = 0.8
+      const compressor = this.ctx.createDynamicsCompressor()
+      master.connect(compressor).connect(this.ctx.destination)
+      this.out = master
+    }
     if (this.ctx.state === 'suspended') void this.ctx.resume()
   }
 
   play(event: GameEvent) {
     switch (event.type) {
       case 'move':
-        return this.tone(220, 0.03, 'square', 0.04)
+        return this.tone(520, 0.05, 'square', 0.12)
       case 'rotate':
-        return this.tone(330, 0.05, 'square', 0.05)
+        return this.tone(780, 0.07, 'square', 0.13)
       case 'hold':
-        return this.sweep(300, 500, 0.08, 0.08)
+        return this.sweep(500, 1000, 0.12, 0.25)
       case 'hardDrop':
-        return this.sweep(180, 60, 0.12, 0.15)
+        return this.sweep(900, 200, 0.15, 0.35)
       case 'lock':
-        return this.tone(110, 0.06, 'triangle', 0.12)
+        return this.tone(300, 0.08, 'square', 0.15)
       case 'tSpin':
         return this.arpeggio([392, 523], 0.07)
       case 'clear': {
@@ -54,7 +63,7 @@ export class Sound {
 
   private tone(freq: number, duration: number, type: OscillatorType, volume: number, delay = 0) {
     const ctx = this.ctx
-    if (this.muted || !ctx || ctx.state !== 'running') return
+    if (this.muted || !ctx || !this.out || ctx.state !== 'running') return
     const t = ctx.currentTime + delay
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -62,14 +71,14 @@ export class Sound {
     osc.frequency.setValueAtTime(freq, t)
     gain.gain.setValueAtTime(volume, t)
     gain.gain.exponentialRampToValueAtTime(0.0001, t + duration)
-    osc.connect(gain).connect(ctx.destination)
+    osc.connect(gain).connect(this.out)
     osc.start(t)
     osc.stop(t + duration)
   }
 
   private sweep(from: number, to: number, duration: number, volume: number) {
     const ctx = this.ctx
-    if (this.muted || !ctx || ctx.state !== 'running') return
+    if (this.muted || !ctx || !this.out || ctx.state !== 'running') return
     const t = ctx.currentTime
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -78,13 +87,13 @@ export class Sound {
     osc.frequency.exponentialRampToValueAtTime(to, t + duration)
     gain.gain.setValueAtTime(volume, t)
     gain.gain.exponentialRampToValueAtTime(0.0001, t + duration)
-    osc.connect(gain).connect(ctx.destination)
+    osc.connect(gain).connect(this.out)
     osc.start(t)
     osc.stop(t + duration)
   }
 
   private arpeggio(notes: number[], step: number, type: OscillatorType = 'square') {
-    notes.forEach((f, i) => this.tone(f, step * 1.6, type, 0.06, i * step))
+    notes.forEach((f, i) => this.tone(f, step * 1.6, type, 0.16, i * step))
   }
 }
 

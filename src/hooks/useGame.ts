@@ -35,6 +35,17 @@ export function useGame() {
 
   useEffect(() => game.onEvent((e) => sound.play(e)), [game, sound])
 
+  // Browsers only allow audio after a user gesture; unlock on any input.
+  useEffect(() => {
+    const unlock = () => sound.unlock()
+    window.addEventListener('keydown', unlock)
+    window.addEventListener('pointerdown', unlock)
+    return () => {
+      window.removeEventListener('keydown', unlock)
+      window.removeEventListener('pointerdown', unlock)
+    }
+  }, [sound])
+
   // Main loop.
   useEffect(() => {
     let last = performance.now()
