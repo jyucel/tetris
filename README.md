@@ -7,7 +7,7 @@ A modern Tetris game for the browser, built with **React 19 + TypeScript + Vite*
 ## Features
 
 - Rules from the Tetris guideline: **SRS rotation with wall kicks**, 7-bag randomizer, lock delay (500 ms, 15 move resets)
-- **Hold piece**, **5-piece next queue**, **ghost piece**
+- **Hold piece**, **5-piece next queue** (can be turned off), **ghost piece**
 - Scoring with **T-spins** (incl. mini), **back-to-back** bonus and **combos**
 - Level progression every 10 lines, using the guideline gravity curve; selectable start level
 - **High scores** saved locally in the browser
@@ -26,6 +26,7 @@ A modern Tetris game for the browser, built with **React 19 + TypeScript + Vite*
 | Rotate left  | Z / Ctrl  | ⟲ button                    |
 | Hold         | C / Shift | HOLD button                 |
 | Pause        | P / Esc   | pause button                |
+| Show next    | N         | eye button on Next panel    |
 | Mute         | M         | speaker button              |
 
 ## Development

@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Board } from './components/Board'
 import { HighScores } from './components/HighScores'
-import { PauseIcon, PlayIcon, SoundOffIcon, SoundOnIcon } from './components/Icons'
+import { EyeIcon, EyeOffIcon, PauseIcon, PlayIcon, SoundOffIcon, SoundOnIcon } from './components/Icons'
 import { PiecePreview } from './components/PiecePreview'
 import { TouchControls } from './components/TouchControls'
 import type { GameEvent } from './game/engine'
 import { lastName, loadHighScores, qualifies, saveHighScore, type HighScore } from './game/highscores'
+import { loadShowNext, saveShowNext } from './game/settings'
 import { useGame } from './hooks/useGame'
 
 interface Popup {
@@ -42,6 +43,24 @@ export default function App() {
   const [submitted, setSubmitted] = useState<HighScore | null>(null)
   const [name, setName] = useState(lastName)
   const [popups, setPopups] = useState<Popup[]>([])
+  const [showNext, setShowNext] = useState(loadShowNext)
+
+  const toggleShowNext = useCallback(
+    () =>
+      setShowNext((show) => {
+        saveShowNext(!show)
+        return !show
+      }),
+    [],
+  )
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyN' && !e.repeat && !(e.target instanceof HTMLInputElement)) toggleShowNext()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [toggleShowNext])
 
   useEffect(
     () =>
@@ -186,11 +205,24 @@ export default function App() {
 
         <div className="side side-right">
           <section className="panel next-panel">
-            <h2>Next</h2>
+            <h2 className="panel-title">
+              Next
+              <button
+                className="toggle-btn"
+                onClick={toggleShowNext}
+                aria-pressed={showNext}
+                aria-label={showNext ? 'Hide next pieces' : 'Show next pieces'}
+                title="Show/hide next pieces (N)"
+              >
+                {showNext ? <EyeIcon /> : <EyeOffIcon />}
+              </button>
+            </h2>
             <div className="next-list">
-              {game.status === 'ready'
-                ? null
-                : game.queue.slice(0, 5).map((type, i) => <PiecePreview key={i} type={type} />)}
+              {!showNext ? (
+                <span className="muted small">Off</span>
+              ) : game.status === 'ready' ? null : (
+                game.queue.slice(0, 5).map((type, i) => <PiecePreview key={i} type={type} />)
+              )}
             </div>
           </section>
 
@@ -247,6 +279,8 @@ function ControlsHelp() {
       <dd>Hold</dd>
       <dt>P / Esc</dt>
       <dd>Pause</dd>
+      <dt>N</dt>
+      <dd>Show/hide next</dd>
       <dt>M</dt>
       <dd>Mute</dd>
     </dl>
